@@ -16,7 +16,17 @@
     "supplier": null,
     "topology": {
         "computes": [],
-        "drawings": [],
+        "drawings": [
+            {
+                "drawing_id": "92c90e93-a5f3-4c7c-9b60-6a381a99ccb4",
+                "locked": false,
+                "rotation": 0,
+                "svg": "<svg width=\"68\" height=\"29\"><text font-family=\"TypeWriter\" font-size=\"10.0\" font-weight=\"bold\" fill=\"#000000\" fill-opacity=\"1.0\">GE 1/0</text></svg>",
+                "x": -651,
+                "y": -153,
+                "z": 2
+            }
+        ],
         "links": [
             {
                 "filters": {},
@@ -245,8 +255,8 @@
                 "symbol": ":/symbols/router.svg",
                 "template_id": "459d2639-755d-4003-91d8-839ca7144acf",
                 "width": 66,
-                "x": -550,
-                "y": -139,
+                "x": -724,
+                "y": -137,
                 "z": 1
             },
             {
@@ -314,8 +324,8 @@
                 "symbol": ":/symbols/router.svg",
                 "template_id": "459d2639-755d-4003-91d8-839ca7144acf",
                 "width": 66,
-                "x": -400,
-                "y": -138,
+                "x": -481,
+                "y": -136,
                 "z": 1
             },
             {

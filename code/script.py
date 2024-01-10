@@ -19,7 +19,6 @@ base_config = [
 "multilink bundle-name authenticated",
 
 "ip tcp synwait-time 5",
-#coucou
 
 "ip forward-protocol nd",
 
@@ -53,13 +52,16 @@ def addressing(topology):
     for AS in topology:
         base_router_ip = topology[AS]['address']
         i = 1
+        subnet_dict = give_subnet_number(topology[AS]["routers"])
         for router in topology[AS]['routers']:
-            router_ip = base_router_ip + f"::{i}"
-            give_ipv6(AS, router, topology, router_ip, topology[AS]['subnet_mask'])
+            
+            give_ipv6(AS, router, topology, subnet_dict)
             i+=1
+
 
         
         #faire modulo pour eviter i = 257
+        #router et x
 
 def insert_cfg_line(router, line, data):
     with open(f'i{router}_startup-config.cfg', 'r') as file:
@@ -77,7 +79,7 @@ def create_base_cfg(router, base_config):
         file.close()
     insert_cfg_line(x, 3, f"hostname {router}\n")
 
-def create_interfaces_cfg(router, interfaces, address, subnet_mask):
+def create_interfaces_cfg(router, as_topology, subnet_dict):
     index_line = 1
     x = router[1:]
     with open(f'i{x}_startup-config.cfg', 'r') as file:
@@ -86,18 +88,39 @@ def create_interfaces_cfg(router, interfaces, address, subnet_mask):
             lines = file.readline()
             index_line += 1
 
-    for interface in interfaces:
-        insert_cfg_line(x, index_line, f"interface {interface}\n no ip address\n negotiation auto\n")
+    for interface in as_topology['routers'][router].keys():
+
+        insert_cfg_line(x, index_line, f"interface {as_topology['routers'][router][interface]}\n no ip address\n negotiation auto\n")
         index_line += 3
-        insert_cfg_line(x, index_line, f" ipv6 address {address}{subnet_mask}\n")
-        index_line += 1
+        if router[1:] < interface[1:]:
+            subnet_index = subnet_dict[(router, interface)]
+            router_index = 1  
+        else:
+            subnet_index = subnet_dict[(interface, router)]
+            router_index = 2
+        print(router, interface, subnet_index)
 
-        
+        insert_cfg_line(x, index_line, f" ipv6 address {as_topology['address']}{subnet_index}::{router_index}{as_topology['subnet_mask']}\n ipv6 enable\n")
 
-def give_ipv6(as_number, router, topology, address, subnet_mask):
+        index_line += 2
+
+
+def give_subnet_number(as_topology):
+    #Cree les subnet pour une AS
+    subnet_number = 1
+    subnet_dict = dict()
+    for router in as_topology:
+        for key in as_topology[router]:
+            if router[1:] < key[1:]:
+                subnet_dict[(router, key)] = subnet_number
+                subnet_number += 1
+    print(subnet_dict)
+    return subnet_dict           
+
+def give_ipv6(as_number, router, topology, subnet_dict):
     x = router[1:]
     create_base_cfg(router, base_config)
-    create_interfaces_cfg(router, topology[as_number]["routers"][router].values(), address, subnet_mask)
+    create_interfaces_cfg(router, topology[as_number], subnet_dict)
 
 topology = read_json("intents.json")
 

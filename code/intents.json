@@ -3,9 +3,9 @@
         "address" : "2001:192:168:1",
         "subnet_mask" : "/64",
         "routers" : {
-            "R1" : { "R2" : "GigabitEthernet1/0"},
+            "R1" : {"R2" : "GigabitEthernet1/0"},
             "R2" : {"R1" : "GigabitEthernet1/0", "R3" : "GigabitEthernet2/0"},
-            "R3" : { "R2" : "GigabitEthernet1/0"}
+            "R3" : {"R2" : "GigabitEthernet1/0"}
         },
         "protocol" : "RIP",
         "neighbor" : {"AS_2" : {"R3" : "GigabitEthernet2/0"}}

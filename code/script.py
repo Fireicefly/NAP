@@ -5,7 +5,6 @@ base_config = [
 "version 15.2",
 "service timestamps debug datetime msec",
 "service timestamps log datetime msec",
- #hostname
 "boot-start-marker",
 "boot-end-marker",
 "no aaa new-model",
@@ -42,7 +41,7 @@ def read_json(file_path):
             topology = json.load(file)
     except FileNotFoundError:
         print("---------------------------------------------------------------------")
-        print(f"Error : {file_path} not found. You must be in the 'code' directory !")
+        print(f"Error : le fichier {file_path} not found. You must be in the 'code' directory !")
         print("---------------------------------------------------------------------")
         sys.exit(1)
     except Exception:
@@ -50,15 +49,18 @@ def read_json(file_path):
         sys.exit(1)
     return topology
 
+
 def addressing(topology):
+    #Pour chaque AS, configure l'adressage de toutes les interfaces des routeurs : ipv6 = {base_address}:{AS_index}{subnet_index}::{router_index}/{mask}
     for AS in topology:
         subnet_dict = give_subnet_number(topology[AS]["routers"])
         for router in topology[AS]['routers']:
             create_base_cfg(router, base_config)
-            create_interfaces_cfg(router, topology[AS], subnet_dict)
+            create_router_interfaces(router, topology[AS], subnet_dict)
+
 
 def insert_cfg_line(router, line, data):
-    #insert une information 'data' à la ligne 'line'
+    #insert une information 'data' à la ligne 'line'.
     with open(f'i{router[1:]}_startup-config.cfg', 'r') as file:
         lines = file.readlines()
         lines.insert(line, data)
@@ -73,29 +75,34 @@ def create_base_cfg(router, base_config):
             file.write(entry + '\n')
     insert_cfg_line(router, 3, f"hostname {router}\n")
 
-def create_interfaces_cfg(router, as_topology, subnet_dict):
+
+def find_index(router, line):
+    #Trouve l'indice correcte pour inserer une nouvelle ligne juste après la ligne 'line'.
     index_line = 1
     with open(f'i{router[1:]}_startup-config.cfg', 'r') as file:
         lines = file.readline()
-        while lines != "ip tcp synwait-time 5\n":
+        while lines != line:
             lines = file.readline()
             index_line += 1
+    return index_line
 
-    for interface in as_topology['routers'][router].keys():
 
-        insert_cfg_line(router, index_line, f"interface {as_topology['routers'][router][interface]}\n no ip address\n negotiation auto\n")
-        index_line += 3
-        if router[1:] < interface[1:]:
-            subnet_index = subnet_dict[(router, interface)]
+def create_router_interfaces(router, as_topology, subnet_dict):
+    #insert dans le cfg du routeur toutes les ses interfaces et leurs ipv6 correspondantes.
+    index_line = find_index(router, line="ip tcp synwait-time 5\n")
+
+    for neighbor in as_topology['routers'][router].keys():
+
+        if router[1:] < neighbor[1:]:
+            subnet_index = subnet_dict[(router, neighbor)]
             router_index = 1  
         else:
-            subnet_index = subnet_dict[(interface, router)]
+            subnet_index = subnet_dict[(neighbor, router)]
             router_index = 2
-        print(router, interface, subnet_index)
+        print(router, neighbor, subnet_index)
 
-        insert_cfg_line(router, index_line, f" ipv6 address {as_topology['address']}{subnet_index}::{router_index}{as_topology['subnet_mask']}\n ipv6 enable\n")
-
-        index_line += 2
+        insert_cfg_line(router, index_line, f"interface {as_topology['routers'][router][neighbor]}\n no ip address\n negotiation auto\n ipv6 address {as_topology['address']}{subnet_index}::{router_index}{as_topology['subnet_mask']}\n ipv6 enable\n")
+        index_line += 5
 
 
 def give_subnet_number(as_topology):
@@ -103,11 +110,24 @@ def give_subnet_number(as_topology):
     subnet_number = 1
     subnet_dict = dict()
     for router in as_topology:
-        for key in as_topology[router]:
-            if router[1:] < key[1:]:
-                subnet_dict[(router, key)] = subnet_number
+        for neighbor in as_topology[router]:
+            if router[1:] < neighbor[1:]:
+                subnet_dict[(router, neighbor)] = subnet_number
                 subnet_number += 1
     return subnet_dict
+
+"""def eBGP_configure(topology):
+    #configure pour chaque AS comme clé le routeur, et comme valeur les routeurs eBGP et les interfaces.
+    for AS in topology:
+        for as_neighbor in topology[AS]['neighbor']:
+            eBGP_routers(AS, as_neighbor)
+
+def eBGP_routers(AS, as_neighbor, topology):
+    for router_AS in topology[AS]['neighbor'][as_neighbor]:
+        for router_as_neighbor, interface_AS in topology[AS]['neighbor'][as_neighbor][router_AS].items():
+            interface_AS_neighbor = topology[as_neighbor]['neighbor'][AS][router_as_neighbor][router_AS]
+            print(router_AS, interface_AS, router_as_neighbor, interface_AS_neighbor)
+"""
 
 
 topology = read_json("intents.json")

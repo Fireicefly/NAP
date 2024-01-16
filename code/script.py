@@ -50,20 +50,23 @@ def read_json(file_path):
     return topology
 
 
-def addressing(topology):
+def main(topology):
     #Pour chaque AS, configure l'adressage de toutes les interfaces des routeurs : ipv6 = {base_address}:{AS_index}{subnet_index}::{router_index}/{mask}
     for AS in topology:
         subnet_dict = give_subnet_number(topology[AS]["routers"])
         for router in topology[AS]['routers']:
+            print(router)
             create_base_cfg(router, base_config)
             create_router_interfaces(router, topology[AS], subnet_dict)
+            activate_protocols(router, topology[AS])
+            give_router_id(topology)
 
 
-def insert_cfg_line(router, line, data):
+def insert_cfg_line(router, index_line, data):
     #insert une information 'data' à la ligne 'line'.
     with open(f'i{router[1:]}_startup-config.cfg', 'r') as file:
         lines = file.readlines()
-        lines.insert(line, data)
+        lines.insert(index_line, data)
     with open(f'i{router[1:]}_startup-config.cfg', 'w') as file:
         file.writelines(lines)
 
@@ -116,6 +119,62 @@ def give_subnet_number(as_topology):
                 subnet_number += 1
     return subnet_dict
 
+def is_rip(as_topology):
+    #retourne True si RIP est à activer, False sinon.
+    return True if as_topology["protocol"] == "RIP" else False
+
+def is_ospf(as_topology):
+    #retourne True si RIP est à activer, False sinon
+    return True if as_topology["protocol"] == "OSPF" else False
+
+def activate_protocols(router, as_topology):
+    #active tous les protocols d'un routeur.
+    if is_ospf(as_topology):
+        activate_ospf(router, as_topology)
+    elif is_rip(as_topology):
+        activate_rip(router, as_topology)
+    activate_bgp(router, as_topology)
+
+def activate_ospf(router, as_topology):
+    #active OSPF sur le routeur.
+    index_line = find_index(router, "no ip http secure-server\n")
+    insert_cfg_line(router, index_line, "ipv6 router ospf 1\n")
+    for interface in as_topology["routers"][router].values():
+        index_line = find_index(router, f"interface {interface}\n") + 4
+        insert_cfg_line(router, index_line, " ipv6 ospf 1 area 0\n")
+    if is_border_routers(router, as_topology):
+        index_line = find_index(router, "ip forward-protocol nd\n") - 1
+        insert_cfg_line(router, index_line, "router ospf 1\n")
+        
+
+def activate_rip(router, as_topology):
+    #active RIP sur le routeur.
+    rip_process_name = "process"
+    index_line = find_index(router, "no ip http secure-server\n")
+    insert_cfg_line(router, index_line, f"ipv6 router rip {rip_process_name}\n redistribute connected\n")
+    for interface in as_topology["routers"][router].values():
+        index_line = find_index(router, f"interface {interface}\n") + 4
+        insert_cfg_line(router, index_line, f" ipv6 rip {rip_process_name} enable\n")
+    print(is_border_routers(router, as_topology))
+
+def give_router_id(topology):
+    router_ids = dict()
+    for AS in topology:
+        for router in topology[AS]["routers"]:
+            x = router[1:]
+            router_ids[router] = f"{x}.{x}.{x}.{x}"
+    print(router_ids)
+
+
+def activate_bgp(routeur, as_topology):
+    #active BGP sur le routeur.
+    pass
+
+def is_border_routers(router, as_topology): 
+    for AS_neighbor in as_topology["neighbor"]:
+        return True if router in as_topology["neighbor"][AS_neighbor].keys() else False
+        
+
 """def eBGP_configure(topology):
     #configure pour chaque AS comme clé le routeur, et comme valeur les routeurs eBGP et les interfaces.
     for AS in topology:
@@ -131,4 +190,4 @@ def eBGP_routers(AS, as_neighbor, topology):
 
 
 topology = read_json("intents.json")
-addressing(topology)
+main(topology)

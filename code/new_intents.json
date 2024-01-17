@@ -1,0 +1,48 @@
+{
+    "AS_1": {
+        "address" : "2001:192:168:1",
+        "subnet_mask" : "/64",
+        "routers" : {
+            "R1": {"R2": "GigabitEthernet1/0"},
+            "R2": {"R1": "GigabitEthernet1/0", "R3": "GigabitEthernet2/0"},
+            "R3": {"R2": "GigabitEthernet1/0"},
+            "R4": {"R5": "GigabitEthernet1/0"},
+            "R5": {"R4": "GigabitEthernet1/0", "R6": "GigabitEthernet2/0"},
+            "R6": {"R5": "GigabitEthernet1/0"},
+            "R7": {"R8": "GigabitEthernet1/0"},
+            "R8": {"R7": "GigabitEthernet1/0", "R9": "GigabitEthernet2/0"},
+            "R9": {"R8": "GigabitEthernet1/0"},
+            "R10": {"R11": "GigabitEthernet1/0"},
+            "R11": {"R10": "GigabitEthernet1/0", "R12": "GigabitEthernet2/0"},
+            "R12": {"R11": "GigabitEthernet1/0"},
+            "R13": {"R14": "GigabitEthernet1/0"},
+            "R14": {"R13": "GigabitEthernet1/0", "R15": "GigabitEthernet2/0"},
+            "R15": {"R14": "GigabitEthernet1/0"}
+        },
+        "protocol" : "RIP",
+        "neighbor" : {"AS_2" : {"R3" : {"R16":"GigabitEthernet2/0"}}}
+    },
+    "AS_2": {
+        "address" : "2001:192:168:2",
+        "subnet_mask" : "/64",
+        "routers" : {
+            "R16": {"R17": "GigabitEthernet1/0"},
+            "R17": {"R16": "GigabitEthernet1/0", "R18": "GigabitEthernet2/0"},
+            "R18": {"R17": "GigabitEthernet1/0"},
+            "R19": {"R20": "GigabitEthernet1/0"},
+            "R20": {"R19": "GigabitEthernet1/0", "R21": "GigabitEthernet2/0"},
+            "R21": {"R20": "GigabitEthernet1/0"},
+            "R22": {"R23": "GigabitEthernet1/0"},
+            "R23": {"R22": "GigabitEthernet1/0", "R24": "GigabitEthernet2/0"},
+            "R24": {"R23": "GigabitEthernet1/0"},
+            "R25": {"R26": "GigabitEthernet1/0"},
+            "R26": {"R25": "GigabitEthernet1/0", "R27": "GigabitEthernet2/0"},
+            "R27": {"R26": "GigabitEthernet1/0"},
+            "R28": {"R29": "GigabitEthernet1/0"},
+            "R29": {"R28": "GigabitEthernet1/0", "R30": "GigabitEthernet2/0"},
+            "R30": {"R29": "GigabitEthernet1/0"}
+        },
+        "protocol" : "OSPF",
+        "neighbor" : {"AS_1" : {"R16" : {"R3":"GigabitEthernet2/0"}}}
+    }
+}

@@ -1,5 +1,7 @@
 import json
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 base_config = [
 "version 15.2",
@@ -51,15 +53,23 @@ def read_json(file_path):
 
 
 def main(topology):
-    # Pour chaque AS, configure l'adressage de toutes les interfaces des routeurs : ipv6 = {base_address}:{AS_index}{subnet_index}::{router_index}/{mask}
-    for AS in topology:
-        subnet_dict = give_subnet_number(topology[AS]["routers"])
-        for router in topology[AS]['routers']:
-            create_base_cfg(router, base_config)
-            create_loopback_interface(router,topology[AS])
-            create_router_interfaces(router, topology[AS], subnet_dict)
-            activate_protocols(router, AS, topology[AS])
+    with ThreadPoolExecutor() as executor:
+        futures = []
 
+        for AS in topology:
+            subnet_dict = give_subnet_number(topology[AS]["routers"])
+            for router in topology[AS]['routers']:
+                future = executor.submit(process_router, router, AS, subnet_dict, topology)
+                futures.append(future)
+
+        for future in futures:
+            future.result()
+
+def process_router(router, AS, subnet_dict, topology):
+    create_base_cfg(router, base_config)
+    create_loopback_interface(router, topology[AS])
+    create_router_interfaces(router, topology[AS], subnet_dict)
+    activate_protocols(router, AS, topology[AS])
 
 def insert_cfg_line(router, index_line, data):
     # insert une information 'data' à la ligne 'line'.
@@ -198,5 +208,9 @@ def create_loopback_interface(router, as_topology):
     if is_ospf(as_topology):
         insert_cfg_line(router, index_line, " ipv6 ospf 1 area 0\n")
 
-topology = read_json("intents.json")
-main(topology)
+if __name__ == "__main__":
+    start = time.time()
+    topology = read_json("new_intents.json")
+    main(topology)
+    end = time.time()
+    print(end-start)

@@ -57,6 +57,7 @@ def main(topology):
         for router in topology[AS]['routers']:
             print(router)
             create_base_cfg(router, base_config)
+            create_loopback_interface(router,topology[AS])
             create_router_interfaces(router, topology[AS], subnet_dict)
             activate_protocols(router, topology[AS])
             give_router_id(topology)
@@ -187,7 +188,12 @@ def eBGP_routers(AS, as_neighbor, topology):
             interface_AS_neighbor = topology[as_neighbor]['neighbor'][AS][router_as_neighbor][router_AS]
             print(router_AS, interface_AS, router_as_neighbor, interface_AS_neighbor)
 """
-
+def create_loopback_interface(router, as_topology):
+    index_line = find_index(router, line="ip tcp synwait-time 5\n")
+    insert_cfg_line(router, index_line, f"interface Loopback0\n no ip address\n ipv6 address 2001::{router[1:]}/128\n")
+    index_line += 3
+    if is_ospf(as_topology):
+        insert_cfg_line(router, index_line, " ipv6 ospf 1 area 0\n")
 
 topology = read_json("intents.json")
 main(topology)

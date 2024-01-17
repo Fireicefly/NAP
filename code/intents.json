@@ -8,7 +8,7 @@
             "R3" : {"R2" : "GigabitEthernet1/0"}
         },
         "protocol" : "RIP",
-        "neighbor" : {"AS_2" : {"R3" : "GigabitEthernet2/0"}}
+        "neighbor" : {"AS_2" : {"R3" : {"R4":"GigabitEthernet2/0"}}}
     },
     "AS_2": {
         "address" : "2001:192:168:2",
@@ -19,6 +19,6 @@
             "R6" : {"R5" : "GigabitEthernet1/0"}
         },
         "protocol" : "OSPF",
-        "neighbor" : {"AS_2" : {"R4" : "GigabitEthernet2/0"}}
+        "neighbor" : {"AS_1" : {"R4" : {"R3":"GigabitEthernet2/0"}}}
     }
 }

@@ -156,10 +156,11 @@ def activate_ospf(router, as_topology, router_id):
     if is_border_routers(router, as_topology):
         index_line = find_index(router, "ip forward-protocol nd\n") - 1
         insert_cfg_line(router, index_line, "router ospf 1\n")
+        index_line = find_index(router, f" router-id {router_id}\n")
         for AS_neighbor in as_topology["neighbor"]:
-            index_line =  find_index(router, f" router-id {router_id}\n")
-            for interface in as_topology["neighbor"][AS_neighbor][router].values():
-                insert_cfg_line(router, index_line, f" passive-interface {interface}\n")
+            if router in as_topology["neighbor"][AS_neighbor].keys():
+                for interface in as_topology["neighbor"][AS_neighbor][router].values():
+                    insert_cfg_line(router, index_line, f" passive-interface {interface}\n")
 
 
 def activate_rip(router, as_topology):
@@ -175,31 +176,50 @@ def give_router_id(router):
     x = router[1:]
     return f"{x}.{x}.{x}.{x}"
 
+def give_subnet_interconnexion(AS1, AS2, routeur1, routeur2):
+    if (int(AS1[3:]) < int(AS2[3:])):
+        return str(int(AS1[3:])*1000 + 999 - int(AS2[3:]) - ((int(routeur1[1:]) if int(routeur1[1:]) < int(routeur2[1:]) else int(routeur2[1:])))) + "::" + ("1" if int(routeur1[1:]) < int(routeur2[1:]) else "2")
+    else:
+        return str(int(AS2[3:])*1000 + 999 - int(AS1[3:]) - (int(routeur1[1:]) if int(routeur1[1:]) < int(routeur2[1:]) else int(routeur2[1:]))) + "::" + ("1" if int(routeur1[1:]) < int(routeur2[1:]) else "2")
+
 
 def activate_bgp(routeur, AS, as_topology):
-        print(as_topology)
         index_line = find_index(routeur, "ip forward-protocol nd\n") - 1
+        if is_border_routers(routeur, as_topology):
+            for AS_neighbor in as_topology["neighbor"]:
+                for neighborRouter in as_topology["neighbor"][AS_neighbor]:
+                    if neighborRouter == routeur:
+                        for neighborRouter2 in as_topology["neighbor"][AS_neighbor][neighborRouter]:
+                            insert_cfg_line(routeur, index_line, f"interface {as_topology["neighbor"][AS_neighbor][neighborRouter][neighborRouter2]}\n no ip address\n negotiation auto\n ipv6 address {as_topology['address'][:-1]}{give_subnet_interconnexion(AS,AS_neighbor,routeur, neighborRouter2)}{as_topology['subnet_mask']}\n ipv6 enable\n")
+                            index_line += 5
         insert_cfg_line(routeur, index_line, f"router bgp 10{AS[3:]}\n bgp router-id {give_router_id(routeur)}\n bgp log-neighbor-changes\n no bgp default ipv4-unicast\n")
         index_line += 4
+        neighborConf = ""
+        index_sum = 0
         for router in as_topology["routers"]:
             if router != routeur:
-                print(router)
-                insert_cfg_line(routeur, index_line, f" neighbor 2001::{router[1:]} remote-as 10{AS[3:]}\n")
-                index_line += 1
-                insert_cfg_line(routeur, index_line, f" neighbor 2001::{router[1:]} update-source Loopback0\n")
-                index_line += 1
+                neighborConf += f" neighbor 2001::{router[1:]} remote-as 10{AS[3:]}\n neighbor 2001::{router[1:]} update-source Loopback0\n"
+                index_sum += 2
+        insert_cfg_line(routeur, index_line, neighborConf)
+        index_line += index_sum
         insert_cfg_line(routeur, index_line, f" address-family ipv4\n exit-address-family\n address-family ipv6\n")
         index_line += 3
+        neighborConf = ""
+        index_sum = 0
         for router in as_topology["routers"]:
             if router != routeur:
-                print(router)
-                insert_cfg_line(routeur, index_line, f"  neighbor 2001::{router[1:]} activate\n")
-                index_line += 1
+                neighborConf += f"  neighbor 2001::{router[1:]} activate\n"
+                index_sum += 1
+        insert_cfg_line(routeur, index_line, neighborConf)
+        index_line += index_sum
+        insert_cfg_line(routeur, index_line, " exit-address-family\n")
 
 def is_border_routers(router, as_topology):
+    state = False
     for AS_neighbor in as_topology["neighbor"]:
-        return True if router in as_topology["neighbor"][AS_neighbor].keys() else False
-
+        if router in as_topology["neighbor"][AS_neighbor].keys():
+            state = True
+    return state
 
 def create_loopback_interface(router, as_topology):
     index_line = find_index(router, line="ip tcp synwait-time 5\n")
@@ -210,7 +230,7 @@ def create_loopback_interface(router, as_topology):
 
 if __name__ == "__main__":
     start = time.time()
-    topology = read_json("new_intents.json")
+    topology = read_json("intents.json")
     main(topology)
     end = time.time()
     print(end-start)

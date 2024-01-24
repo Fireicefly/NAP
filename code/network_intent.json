@@ -1,0 +1,35 @@
+{
+    "AS_1": {
+        "address" : "2001:192:168:1",
+        "subnet_mask" : "/64",
+        "routers" : {
+            "R1" : {"R2" : "GigabitEthernet1/0", "R3" : "GigabitEthernet2/0"},
+            "R2" : {"R1" : "GigabitEthernet1/0", "R3" : "GigabitEthernet2/0", "R4" : "GigabitEthernet3/0"},
+            "R3" : {"R1" : "GigabitEthernet1/0", "R2" : "GigabitEthernet2/0", "R5" : "GigabitEthernet3/0"},
+            "R4" : {"R2" : "GigabitEthernet1/0", "R5" : "GigabitEthernet2/0", "R6" : "GigabitEthernet3/0", "R7" : "GigabitEthernet4/0"},
+            "R5" : {"R3" : "GigabitEthernet1/0", "R4" : "GigabitEthernet2/0", "R6" : "GigabitEthernet3/0", "R7" : "GigabitEthernet4/0"},
+            "R6" : {"R4" : "GigabitEthernet1/0", "R5" : "GigabitEthernet2/0"},
+            "R7" : {"R4" : "GigabitEthernet1/0", "R5" : "GigabitEthernet2/0"}
+        },
+        "protocol" : "RIP",
+        "neighbor" : {"AS_2" : {"R6" : {"R8":"GigabitEthernet3/0"}, "R7" : {"R9":"GigabitEthernet3/0"}}},
+        "pingable" : { "AS_2": [["R1","R2"]] }
+    },
+    "AS_2": {
+        "address" : "2001:192:168:2",
+        "subnet_mask" : "/64",
+        "routers" : {
+            "R8" : {"R10" : "GigabitEthernet1/0", "R11" : "GigabitEthernet2/0"},
+            "R9" : {"R10" : "GigabitEthernet1/0", "R11" : "GigabitEthernet2/0"},
+            "R10" : {"R8" : "GigabitEthernet1/0", "R9" : "GigabitEthernet2/0", "R11" : "GigabitEthernet3/0", "R12" : "GigabitEthernet4/0"},
+            "R11" : {"R8" : "GigabitEthernet1/0", "R9" : "GigabitEthernet2/0", "R10" : "GigabitEthernet3/0", "R13" : "GigabitEthernet4/0"},
+            "R12" : {"R10" : "GigabitEthernet1/0", "R13" : "GigabitEthernet2/0", "R14" : "GigabitEthernet3/0"},
+            "R13" : {"R11" : "GigabitEthernet1/0", "R12" : "GigabitEthernet2/0", "R14" : "GigabitEthernet3/0"},
+            "R14" : {"R12" : "GigabitEthernet1/0", "R13" : "GigabitEthernet2/0"}
+        },
+        "protocol" : "OSPF",
+        "neighbor" : {"AS_1" : {"R8" : {"R6":"GigabitEthernet3/0"}, "R9" : {"R7": "GigabitEthernet3/0"}}},
+        "pingable" : {"AS_1": [["R13","R14"]]}
+    }
+    
+}

@@ -183,7 +183,9 @@ def activate_ospf(router, as_topology, router_id):
     for interface in as_topology["routers"][router].values():
         index_line = find_index(router, f"interface {interface}\n") + 4
         insert_cfg_line(router, index_line, " ipv6 ospf 1 area 0\n")
+
     if is_border_routers(router, as_topology):
+
         index_line = find_index(router, "ip forward-protocol nd\n") - 1
         insert_cfg_line(router, index_line, "router ospf 1\n")
         index_line = find_index(router, f" router-id {router_id}\n")
@@ -191,7 +193,7 @@ def activate_ospf(router, as_topology, router_id):
             if router in as_topology["neighbor"][AS_neighbor].keys():
                 for interface in as_topology["neighbor"][AS_neighbor][router].values():
                     insert_cfg_line(router, index_line, f" passive-interface {interface}\n")
-
+                    
 
 def activate_rip(router, as_topology):
     # active RIP sur le routeur.
@@ -224,9 +226,29 @@ def activate_bgp(routeur, AS, as_topology, subnet_interconnexion_dict, subnet_di
                         insert_cfg_line(routeur, index_line,
                                         f"interface {as_topology['neighbor'][AS_neighbor][neighborRouter][neighborRouter2]}\n no ip address\n negotiation auto\n ipv6 address {as_topology['address'][:-1]}{get_subnet_interconnexion(subnet_interconnexion_dict, routeur, neighborRouter2)}{as_topology['subnet_mask']}\n ipv6 enable\n")
                         index_line += 5
+                        if is_ospf(as_topology):
+                            insert_cfg_line(routeur, index_line," ipv6 ospf 1 area 0\n")
+                            index_line +=1
+                                            
     insert_cfg_line(routeur, index_line,
                     f"router bgp 10{AS[3:]}\n bgp router-id {give_router_id(routeur)}\n bgp log-neighbor-changes\n no bgp default ipv4-unicast\n")
     index_line += 4
+    #neighbor autre as
+    for AS_neighbor in as_topology["neighbor"]:
+        if is_border_routers(routeur, as_topology):
+           
+            for subnet in subnet_interconnexion_dict:
+                if subnet[0] == routeur:
+                    if int(AS[3:]) < int(AS_neighbor[3:]):
+                        network_tail = subnet_interconnexion_dict[subnet][:-1]+"2"
+                        
+                    else:
+                        network_tail = subnet_interconnexion_dict[subnet][:-1]+"1"
+                        
+
+            insert_cfg_line(routeur, index_line, f" neighbor {as_topology['address'][:-1]}{network_tail} remote-as 10{AS_neighbor[3:]}\n")
+            index_line +=1
+
     neighborConf = ""
     index_sum = 0
     for router in as_topology["routers"]:
@@ -239,13 +261,19 @@ def activate_bgp(routeur, AS, as_topology, subnet_interconnexion_dict, subnet_di
     index_line += 3
     neighborConf = ""
     index_sum = 0
+
     for router in as_topology["routers"]:
         if router != routeur:
             neighborConf += f"  neighbor 2001::{router[1:]} activate\n"
             index_sum += 1
+    if is_border_routers(routeur, as_topology):
+        insert_cfg_line(routeur, index_line, f"  neighbor {as_topology['address'][:-1]}{network_tail} activate\n")
+        index_line +=1
+
     insert_cfg_line(routeur, index_line, neighborConf)
     index_line += index_sum
     if is_border_routers(routeur, as_topology):
+        
         create_networks(as_topology,routeur, subnet_dict, index_line)
         index_line +=1
     insert_cfg_line(routeur, index_line, " exit-address-family\n")
@@ -264,7 +292,6 @@ def create_networks(as_topology, router, subnet_dict, index_line):
         for AS in as_topology["pingable"]:
             if AS == AS_neighbor:
                 network = as_topology["pingable"][AS]
-                print(network)
                 insert_cfg_line(router, index_line, f"  network {as_topology['address']}{subnet_dict[network[0][0], network[0][1]]}::{as_topology['subnet_mask']}\n" )
                 
                     

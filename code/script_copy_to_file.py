@@ -34,7 +34,7 @@ path_correct_files = os.path.join(os.getcwd())
 correct_files = os.listdir(path_correct_files)
 
 # Dossier GNS3
-path_dossier_principal = r"C:\Users\jojob\GNS3\projects\TP_GNS3\project-files\dynamips"
+path_dossier_principal = r"c:\Users\Portable\GNS3\projects\gns3_avec_python\project-files\dynamips"
 dossiers = os.listdir(path_dossier_principal)
 
 for nom_dossier in dossiers:
